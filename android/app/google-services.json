@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "371004320874",
+    "project_id": "peto-fd14b",
+    "storage_bucket": "peto-fd14b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371004320874:android:91cb9753ef64e0ea62ae13",
+        "android_client_info": {
+          "package_name": "com.example.peto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2kABjmVun4hONN8CYW7c2YlkZWHWBS_s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
