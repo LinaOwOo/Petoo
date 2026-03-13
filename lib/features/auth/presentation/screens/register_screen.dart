@@ -1,17 +1,16 @@
 import 'package:Peto/core/theme/app_colors.dart';
-import 'package:Peto/features/auth/presentation/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -44,14 +43,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             children: [
               const Spacer(),
-              const Icon(
+              Icon(
                 Icons.pets,
                 size: 80,
                 color: AppColors.primaryBright,
               ),
               const SizedBox(height: 24),
               Text(
-                'Вход',
+                'Регистрация',
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               const SizedBox(height: 48),
@@ -82,17 +81,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {},
-                  child: Text(
-                    'Забыли пароль?',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
-                ),
-              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -100,7 +88,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: ElevatedButton(
                   onPressed: authState.isLoading
                       ? null
-                      : () => ref.read(authProvider.notifier).signIn(
+                      : () => ref.read(authProvider.notifier).signUp(
                             _emailController.text.trim(),
                             _passwordController.text.trim(),
                           ),
@@ -112,21 +100,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   child: authState.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Войти'),
+                      : const Text('Зарегистрироваться'),
                 ),
               ),
               const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Нет аккаунта?'),
+                  const Text('Уже есть аккаунт?'),
                   TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RegisterScreen(),
-                      ),
-                    ),
-                    child: const Text('Зарегистрироваться'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Войти'),
                   ),
                 ],
               ),
