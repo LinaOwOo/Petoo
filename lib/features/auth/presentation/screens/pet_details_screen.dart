@@ -1,5 +1,7 @@
-import 'package:Peto/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:peto/core/theme/app_colors.dart';
+import 'package:peto/features/auth/presentation/screens/home_screen.dart';
+import 'package:peto/features/auth/presentation/screens/profile_screen.dart';
 
 class PetDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> pet;
@@ -58,6 +60,49 @@ class PetDetailsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 0) return;
+
+          if (index == 1) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          }
+          if (index == 3) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Экран в разработке')),
+            );
+          }
+        },
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textGrey,
+        type: BottomNavigationBarType.fixed,
+        items: [
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/icons/home.svg', width: 24),
+            label: 'Главная',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/icons/target.svg', width: 24),
+            label: 'Поиск',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/icons/calendar.svg', width: 24),
+            label: 'Календарь',
+          ),
+          BottomNavigationBarItem(
+            icon: Image.asset('assets/icons/profile.svg', width: 24),
+            label: 'Профиль',
+          ),
+        ],
       ),
     );
   }

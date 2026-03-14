@@ -1,7 +1,8 @@
-import 'package:Peto/core/theme/app_colors.dart';
-import 'package:Peto/features/auth/presentation/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:peto/core/theme/app_colors.dart';
+import 'package:peto/features/auth/presentation/screens/home_screen.dart';
+import 'package:peto/features/auth/presentation/screens/register_screen.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -32,7 +33,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SnackBar(content: Text(next.error.toString())),
         );
       } else if (next.hasValue) {
-        Navigator.of(context).pushReplacementNamed('/home');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
       }
     });
 

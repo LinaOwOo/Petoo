@@ -14,40 +14,7 @@ class HomeNotifier extends Notifier<HomeState> {
     return HomeState(
       0,
       'Все',
-      [
-        {
-          'name': 'Барсик',
-          'breed': 'Мейн-кун',
-          'age': '2 года',
-          'location': 'Москва',
-          'image': 'https://picsum.photos/id/237/400/300',
-          'category': 'Кошки',
-        },
-        {
-          'name': 'Рекс',
-          'breed': 'Лабрадор',
-          'age': '1 год',
-          'location': 'Санкт-Петербург',
-          'image': 'https://picsum.photos/id/1015/400/300',
-          'category': 'Собаки',
-        },
-        {
-          'name': 'Тортила',
-          'breed': 'Красноухая',
-          'age': '5 лет',
-          'location': 'Казань',
-          'image': 'https://picsum.photos/id/201/400/300',
-          'category': 'Черепашки',
-        },
-        {
-          'name': 'Флэппи',
-          'breed': 'Карликовый',
-          'age': '8 месяцев',
-          'location': 'Новосибирск',
-          'image': 'https://picsum.photos/id/160/400/300',
-          'category': 'Кролики',
-        },
-      ],
+      [],
     );
   }
 
@@ -64,6 +31,14 @@ class HomeNotifier extends Notifier<HomeState> {
       state.tab,
       state.category,
       [...state.pets, pet],
+    );
+  }
+
+  void removePet(String name) {
+    state = HomeState(
+      state.tab,
+      state.category,
+      state.pets.where((p) => p['name'] != name).toList(),
     );
   }
 }
