@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/home_screen.dart';
-import '../../features/auth/presentation/screens/care_tracker_screen.dart';
+import '../../features/care_tracker/presentation/screens/care_tracker_screen.dart';
 import '../../features/calendar/presentation/screens/calendar_screen.dart';
 import '../../features/auth/presentation/screens/profile_screen.dart';
 

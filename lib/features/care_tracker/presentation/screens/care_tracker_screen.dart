@@ -6,7 +6,7 @@ import 'package:peto/features/auth/presentation/providers/home_provider.dart';
 import 'package:peto/features/auth/presentation/screens/home_screen.dart';
 import 'package:peto/features/auth/presentation/screens/profile_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
-import 'package:peto/features/care_tracker/presentation/provider/care_tracker_provider.dart';
+import '../provider/care_tracker_provider.dart';
 
 class CareTrackerScreen extends ConsumerStatefulWidget {
   const CareTrackerScreen({super.key});
@@ -35,7 +35,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
             const SizedBox(height: 20),
             _buildHeader(pets, selectedPetId),
             Expanded(
-              child: pets.isEmpty
+              child: pets.isEmpty || selectedPetId == null
                   ? _buildEmptyState()
                   : _buildTrackerContent(selectedPetId, careState),
             ),
@@ -48,9 +48,14 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
   }
 
   Widget _buildHeader(List<Map<String, dynamic>> pets, String? selectedPetId) {
+    if (pets.isEmpty) {
+      return _buildEmptyHeader();
+    }
+
     final selectedPet = pets.firstWhere(
       (p) => p['id'] == selectedPetId,
-      orElse: () => pets.first,
+      orElse: () =>
+          pets.firstOrNull ?? {'name': 'PetCare', 'category': 'Собаки'},
     );
 
     return Padding(
@@ -59,7 +64,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SvgPicture.asset(
-            _getPetIcon(selectedPet['category']),
+            _getPetIcon(selectedPet['category'] as String?),
             width: 40,
             height: 40,
             colorFilter: const ColorFilter.mode(
@@ -69,11 +74,36 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
           ),
           const SizedBox(width: 12),
           Text(
-            selectedPet['name'] ?? 'PetCare',
+            selectedPet['name'] as String? ?? 'PetCare',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.primaryBright,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyHeader() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.pets_outlined,
+            size: 40,
+            color: AppColors.primaryBright,
+          ),
+          SizedBox(width: 12),
+          Text(
+            'Трекер ухода',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textGrey,
             ),
           ),
         ],
@@ -98,38 +128,68 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.pets_outlined,
-            size: 80,
-            color: AppColors.primaryBright.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Нет питомцев',
-            style: TextStyle(
-              fontSize: 18,
-              color: AppColors.textGrey,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.info.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.pets_outlined,
+                size: 64,
+                color: AppColors.primaryBright.withValues(alpha: 0.5),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Добавьте питомца на главном экране',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textGrey.withValues(alpha: 0.7),
+            const SizedBox(height: 24),
+            const Text(
+              'Нет питомцев',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Добавьте питомца на главном экране,\nчтобы отслеживать уход',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textGrey.withValues(alpha: 0.8),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              },
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text('Добавить питомца'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTrackerContent(String? petId, CareTrackerState state) {
-    if (petId == null) return const SizedBox.shrink();
-
+  Widget _buildTrackerContent(String petId, CareTrackerState state) {
     final todayTasks = state.getTodayTasks(petId);
     final weekTasks = state.getWeekTasks(petId);
 
@@ -220,10 +280,10 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 100,
-            height: 100,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -243,8 +303,9 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (stats.isNotEmpty)
+                if (stats.isNotEmpty) ...[
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -281,7 +342,8 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
                       ],
                     ),
                   ),
-                if (stats.isNotEmpty) const SizedBox(height: 8),
+                  const SizedBox(height: 8),
+                ],
                 _buildInfoRow('Мыли', lastUpdate),
                 const SizedBox(height: 8),
                 _buildInfoRow('Обновление', frequency),
@@ -399,6 +461,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
 
     return Container(
       margin: const EdgeInsets.all(20),
+      constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -412,13 +475,11 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment
+            .spaceBetween, // ✅ Равномерно без отступов по краям
         children: List.generate(navItems.length, (index) {
           return GestureDetector(
-            onTap: () {
-              setState(() => _navIndex = index);
-              _navigateToScreen(index);
-            },
+            onTap: () => _navigateToScreen(index),
             child: SvgPicture.asset(
               navItems[index],
               width: 28,
@@ -438,18 +499,29 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
 
   void _navigateToScreen(int index) {
     if (index == _navIndex) return;
-    if (index == 0) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } else if (index == 2) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const CalendarScreen()),
-      );
-    } else if (index == 3) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-      );
+
+    setState(() {
+      _navIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+        break;
+      case 1:
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const CalendarScreen()),
+        );
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ProfileScreen()),
+        );
+        break;
     }
   }
 }
