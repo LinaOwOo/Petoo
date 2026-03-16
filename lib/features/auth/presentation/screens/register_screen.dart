@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peto/core/theme/app_colors.dart';
-import 'package:peto/features/auth/presentation/screens/home_screen.dart';
+import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -46,16 +46,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: Column(
             children: [
               const Spacer(),
-              const Icon(
-                Icons.pets,
-                size: 80,
-                color: AppColors.primaryBright,
-              ),
+              const Icon(Icons.pets, size: 80, color: AppColors.primaryBright),
               const SizedBox(height: 24),
-              Text(
-                'Регистрация',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
+              Text('Регистрация',
+                  style: Theme.of(context).textTheme.headlineLarge),
               const SizedBox(height: 48),
               TextField(
                 controller: _emailController,
@@ -98,8 +92,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        borderRadius: BorderRadius.circular(20)),
                   ),
                   child: authState.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)

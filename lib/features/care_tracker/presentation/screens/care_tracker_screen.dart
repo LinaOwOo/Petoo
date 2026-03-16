@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:peto/core/theme/app_colors.dart';
-import 'package:peto/features/auth/presentation/providers/home_provider.dart';
-import 'package:peto/features/auth/presentation/screens/home_screen.dart';
+import 'package:peto/features/home/presentation/providers/home_provider.dart';
+import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import 'package:peto/features/auth/presentation/screens/profile_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
 import '../provider/care_tracker_provider.dart';
@@ -475,8 +475,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment
-            .spaceBetween, // ✅ Равномерно без отступов по краям
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(navItems.length, (index) {
           return GestureDetector(
             onTap: () => _navigateToScreen(index),

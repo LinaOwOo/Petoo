@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:peto/core/constants/app_routes.dart';
-import 'core/theme/app_theme.dart';
+import 'package:peto/core/routing/app_routes.dart'; // ✅ Импорт роутера
+import 'package:peto/core/theme/app_theme.dart';
 
 void main() {
   runApp(const ProviderScope(child: PetPlanetApp()));
 }
 
-class PetPlanetApp extends StatelessWidget {
+class PetPlanetApp extends ConsumerWidget {
   const PetPlanetApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'Peto',
+      // ✅ router вместо обычного MaterialApp
+      title: 'PetPlanet',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      routerConfig: AppRouter.router,
+      routerConfig: AppRoutes.router, // ✅ Подключение GoRouter
     );
   }
 }

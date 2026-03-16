@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peto/core/theme/app_colors.dart';
-import 'package:peto/features/auth/presentation/screens/home_screen.dart';
+import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import 'package:peto/features/auth/presentation/screens/register_screen.dart';
 import '../providers/auth_provider.dart';
 
@@ -47,16 +47,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             children: [
               const Spacer(),
-              const Icon(
-                Icons.pets,
-                size: 80,
-                color: AppColors.primaryBright,
-              ),
+              const Icon(Icons.pets, size: 80, color: AppColors.primaryBright),
               const SizedBox(height: 24),
-              Text(
-                'Вход',
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
+              Text('Вход', style: Theme.of(context).textTheme.headlineLarge),
               const SizedBox(height: 48),
               TextField(
                 controller: _emailController,
@@ -90,10 +83,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {},
-                  child: Text(
-                    'Забыли пароль?',
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
+                  child: Text('Забыли пароль?',
+                      style: Theme.of(context).textTheme.labelMedium),
                 ),
               ),
               const SizedBox(height: 24),
@@ -110,8 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        borderRadius: BorderRadius.circular(20)),
                   ),
                   child: authState.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
@@ -125,9 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text('Нет аккаунта?'),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RegisterScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
                     ),
                     child: const Text('Зарегистрироваться'),
                   ),

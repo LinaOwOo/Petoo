@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:go_router/go_router.dart';
 import 'package:peto/core/theme/app_colors.dart';
-import 'package:peto/features/auth/presentation/providers/home_provider.dart';
+import 'package:peto/core/routing/app_routes.dart';
+import 'package:peto/features/home/presentation/providers/home_provider.dart';
+import 'package:peto/core/widgets/bottom_nav.dart';
+import 'package:peto/features/calendar/presentation/providers/calendar_provider.dart';
 
-// ============================================================================
-// ENUM ДЛЯ ТИПОВ ЗАПИСЕЙ (согласно Interface Segregation из важно.docx)
-// ============================================================================
 enum AppointmentType { clinic, grooming, vaccination, other }
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -19,15 +20,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _navIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeProvider);
 
     final filteredPets = state.category == 'Все'
         ? state.pets
-        : state.pets.where((p) => p['category'] == state.category).toList();
+        : state.pets.where((p) {
+            final category = p['category'] as String?;
+            return category != null && category == state.category;
+          }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,13 +43,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
               _buildCategoryFilter(ref, state.category),
               const SizedBox(height: 24),
-              Expanded(
-                child: _buildPetGrid(filteredPets),
-              ),
+              Expanded(child: _buildPetGrid(filteredPets)),
               const SizedBox(height: 24),
               _buildActionButtons(context),
               const SizedBox(height: 24),
-              _buildBottomNavBar(),
+              const BottomNav(currentIndex: 0),
               const SizedBox(height: 10),
             ],
           ),
@@ -56,9 +56,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ============================================================================
-  // КАЛЕНДАРЬ (мини-виджет) - единая система отступов из UI Kit
-  // ============================================================================
   Widget _buildMiniCalendar() {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
@@ -76,7 +73,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: List.generate(7, (index) {
           final isToday = weekDates[index].day == now.day &&
               weekDates[index].month == now.month;
-
           return Column(
             children: [
               Text(
@@ -105,9 +101,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ============================================================================
-  // ФИЛЬТР КАТЕГОРИЙ - переиспользуемая логика (DRY)
-  // ============================================================================
   Widget _buildCategoryFilter(WidgetRef ref, String selectedCategory) {
     final categories = [
       {'label': 'Все', 'icon': 'assets/icons/blue_dog.svg'},
@@ -128,8 +121,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           final isSelected = selectedCategory == category['label'];
 
           return GestureDetector(
-            onTap: () =>
-                ref.read(homeProvider.notifier).setCategory(category['label']!),
+            onTap: () => ref
+                .read(homeProvider.notifier)
+                .setCategory(category['label'] as String),
             child: Container(
               width: category['label'] == 'Все' ? 70 : 56,
               decoration: BoxDecoration(
@@ -148,15 +142,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: Text(
                         'All',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15),
                       ),
                     )
                   : Center(
                       child: SvgPicture.asset(
-                        category['icon']!,
+                        category['icon'] as String,
                         width: 28,
                         height: 28,
                         colorFilter: ColorFilter.mode(
@@ -172,9 +165,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ============================================================================
-  // СЕТКА ПИТОМЦЕВ - адаптивность из UI Kit
-  // ============================================================================
   Widget _buildPetGrid(List<Map<String, dynamic>> pets) {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -185,9 +175,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       itemCount: pets.length + 1,
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildAddCard(context);
-        }
+        if (index == 0) return _buildAddCard(context);
         return _buildPetCard(context, pets[index - 1]);
       },
     );
@@ -202,15 +190,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4)),
           ],
         ),
         child: const Center(
-          child: Icon(Icons.add, size: 36, color: AppColors.primaryBright),
-        ),
+            child: Icon(Icons.add, size: 36, color: AppColors.primaryBright)),
       ),
     );
   }
@@ -223,17 +209,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       'Кролики': AppColors.primary,
     };
 
-    final color = colors[pet['category']] ?? AppColors.surface;
+    final category = pet['category'] as String?;
+    final color = category != null
+        ? (colors[category] ?? AppColors.surface)
+        : AppColors.surface;
+
     final imagePath = pet['imagePath'] as String?;
+    final petId = pet['id'] as String?;
 
     return GestureDetector(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Экран питомца в разработке'),
-            backgroundColor: AppColors.info,
-          ),
-        );
+        if (petId != null && context.mounted) {
+          context.go('${AppRoutes.petDetails}/$petId');
+        } else if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Экран питомца в разработке'),
+                backgroundColor: AppColors.info),
+          );
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -241,10 +235,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
@@ -257,27 +250,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ClipRRect(
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(24)),
-                      child: Image.file(
-                        File(imagePath),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
+                      child: Image.file(File(imagePath),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity),
                     )
                   else
                     const Center(
-                      child: Icon(Icons.pets,
-                          size: 48, color: AppColors.primaryBright),
-                    ),
+                        child: Icon(Icons.pets,
+                            size: 48, color: AppColors.primaryBright)),
                   Positioned(
                     top: 8,
                     right: 8,
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
+                          color: Colors.white, shape: BoxShape.circle),
                       child: const Icon(Icons.star,
                           color: AppColors.warning, size: 14),
                     ),
@@ -290,9 +278,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               decoration: const BoxDecoration(
                 color: AppColors.info,
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24)),
               ),
               child: Row(
                 children: [
@@ -300,12 +287,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      pet['name'] ?? '',
+                      pet['name'] as String? ?? 'Без имени',
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -319,16 +305,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ✅ ИСПРАВЛЕНО: убран 'const' т.к. метод _buildDot не является константным выражением
-  // Согласно принципу DRY из важно.docx: логика вынесена в отдельный метод
   Widget _buildStatIndicators() {
-    return Row(
-      children: [
-        _buildDot(AppColors.success),
-        _buildDot(AppColors.primary),
-        _buildDot(AppColors.secondary),
-      ],
-    );
+    return Row(children: [
+      _buildDot(AppColors.success),
+      _buildDot(AppColors.primary),
+      _buildDot(AppColors.secondary),
+    ]);
   }
 
   static Widget _buildDot(Color color) {
@@ -337,53 +319,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       height: 7,
       margin: const EdgeInsets.only(left: 3),
       decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1),
-      ),
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1)),
     );
   }
 
-  // ============================================================================
-  // ЦВЕТНЫЕ КНОПКИ ДЕЙСТВИЙ (согласно цветовой схеме из цвета.docx)
-  // ============================================================================
   Widget _buildActionButtons(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildActionButton(
-          icon: Icons.medical_services_outlined,
-          color: AppColors.success,
-          onTap: () => _showAppointmentModal(
-              context, AppointmentType.clinic, 'Ветеринарная клиника'),
-        ),
+            icon: Icons.medical_services_outlined,
+            color: AppColors.success,
+            onTap: () => _showAppointmentModal(
+                context, AppointmentType.clinic, 'Ветеринарная клиника')),
         _buildActionButton(
-          icon: Icons.shower_outlined,
-          color: AppColors.info,
-          onTap: () => _showAppointmentModal(
-              context, AppointmentType.grooming, 'Груминг'),
-        ),
+            icon: Icons.shower_outlined,
+            color: AppColors.info,
+            onTap: () => _showAppointmentModal(
+                context, AppointmentType.grooming, 'Груминг')),
         _buildActionButton(
-          icon: Icons.water_drop_outlined,
-          color: AppColors.secondary,
-          onTap: () => _showAppointmentModal(
-              context, AppointmentType.vaccination, 'Прививки'),
-        ),
+            icon: Icons.water_drop_outlined,
+            color: AppColors.secondary,
+            onTap: () => _showAppointmentModal(
+                context, AppointmentType.vaccination, 'Прививки')),
         _buildActionButton(
-          icon: Icons.add,
-          color: AppColors.warning,
-          onTap: () =>
-              _showAppointmentModal(context, AppointmentType.other, 'Другое'),
-        ),
+            icon: Icons.add,
+            color: AppColors.warning,
+            onTap: () => _showAppointmentModal(
+                context, AppointmentType.other, 'Другое')),
       ],
     );
   }
 
-  static Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  static Widget _buildActionButton(
+      {required IconData icon,
+      required Color color,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -394,10 +367,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4))
           ],
         ),
         child: Icon(icon, color: Colors.white, size: 28),
@@ -405,109 +377,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ============================================================================
-  // МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ПИТОМЦА
-  // ============================================================================
   void _showAddPetModal(BuildContext context) {
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => _AddPetForm(ref: ref),
     );
   }
 
-  // ============================================================================
-  // МОДАЛЬНОЕ ОКНО ЗАПИСИ (универсальное для 4 типов)
-  // ============================================================================
   void _showAppointmentModal(
       BuildContext context, AppointmentType type, String title) {
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => _AppointmentForm(type: type, title: title),
-    );
-  }
-
-  // ============================================================================
-  // НИЖНЯЯ НАВИГАЦИЯ (единый стиль из UI Kit)
-  // ============================================================================
-  Widget _buildBottomNavBar() {
-    const navItems = [
-      'assets/icons/home.svg',
-      'assets/icons/target.svg',
-      'assets/icons/calendar.svg',
-      'assets/icons/profile.svg',
-    ];
-
-    return Container(
-      margin: const EdgeInsets.all(20),
-      constraints: const BoxConstraints(maxWidth: 400),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(navItems.length, (index) {
-          return GestureDetector(
-            onTap: () {
-              setState(() => _navIndex = index);
-              _navigateToIndex(index);
-            },
-            child: SvgPicture.asset(
-              navItems[index],
-              width: 28,
-              height: 28,
-              colorFilter: ColorFilter.mode(
-                index == _navIndex
-                    ? AppColors.primaryBright
-                    : AppColors.primary,
-                BlendMode.srcIn,
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  void _navigateToIndex(int index) {
-    // Заглушка навигации - реализация через GoRouter будет в core/routing/
-    if (index == _navIndex) return;
-    setState(() => _navIndex = index);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Экран #${index + 1} в разработке'),
-        backgroundColor: AppColors.info,
-        behavior: SnackBarBehavior.floating,
-      ),
     );
   }
 }
 
-// ============================================================================
-// ФОРМА ДОБАВЛЕНИЯ ПИТОМЦА (отдельный StatefulWidget - SOLID SRP)
-// ============================================================================
 class _AddPetForm extends StatefulWidget {
   final WidgetRef ref;
-
   const _AddPetForm({required this.ref});
-
   @override
   State<_AddPetForm> createState() => _AddPetFormState();
 }
@@ -530,11 +428,10 @@ class _AddPetFormState extends State<_AddPetForm> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        left: 24,
-        right: 24,
-        top: 24,
-      ),
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          left: 24,
+          right: 24,
+          top: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -561,18 +458,14 @@ class _AddPetFormState extends State<_AddPetForm> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryBright,
-          ),
-        ),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBright)),
         IconButton(
-          icon: const Icon(Icons.close, color: AppColors.textGrey),
-          onPressed: () => Navigator.pop(context),
-        ),
+            icon: const Icon(Icons.close, color: AppColors.textGrey),
+            onPressed: () => Navigator.pop(context)),
       ],
     );
   }
@@ -582,9 +475,7 @@ class _AddPetFormState extends State<_AddPetForm> {
       onTap: () async {
         final picker = ImagePicker();
         final photo = await picker.pickImage(source: ImageSource.gallery);
-        if (photo != null && mounted) {
-          setState(() => _imagePath = photo.path);
-        }
+        if (photo != null && mounted) setState(() => _imagePath = photo.path);
       },
       child: Container(
         width: 100,
@@ -592,27 +483,22 @@ class _AddPetFormState extends State<_AddPetForm> {
         decoration: BoxDecoration(
           color: _imagePath != null ? Colors.transparent : AppColors.info,
           borderRadius: BorderRadius.circular(20),
-          // ✅ ИСПРАВЛЕНО: проверка _imagePath != null перед использованием
           image: _imagePath != null
               ? DecorationImage(
-                  image: FileImage(
-                      File(_imagePath!)), // ✅ ! безопасно после проверки
-                  fit: BoxFit.cover,
-                )
+                  image: FileImage(File(_imagePath!)), fit: BoxFit.cover)
               : null,
         ),
         child: _imagePath == null
             ? const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_photo_alternate,
-                      size: 32, color: AppColors.primaryBright),
-                  SizedBox(height: 4),
-                  Text('Фото',
-                      style: TextStyle(
-                          color: AppColors.primaryBright, fontSize: 12)),
-                ],
-              )
+                    Icon(Icons.add_photo_alternate,
+                        size: 32, color: AppColors.primaryBright),
+                    SizedBox(height: 4),
+                    Text('Фото',
+                        style: TextStyle(
+                            color: AppColors.primaryBright, fontSize: 12)),
+                  ])
             : null,
       ),
     );
@@ -620,17 +506,14 @@ class _AddPetFormState extends State<_AddPetForm> {
 
   Widget _buildCategorySelector() {
     final categories = ['Кошки', 'Собаки', 'Черепашки', 'Кролики'];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Тип питомца',
-          style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textGrey,
-              fontWeight: FontWeight.w500),
-        ),
+        const Text('Тип питомца',
+            style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textGrey,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,
@@ -646,11 +529,10 @@ class _AddPetFormState extends State<_AddPetForm> {
                   color: isSelected ? AppColors.primary : AppColors.background,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSelected
-                        ? AppColors.primaryBright
-                        : Colors.transparent,
-                    width: 2,
-                  ),
+                      color: isSelected
+                          ? AppColors.primaryBright
+                          : Colors.transparent,
+                      width: 2),
                 ),
                 child: Column(
                   children: [
@@ -660,15 +542,14 @@ class _AddPetFormState extends State<_AddPetForm> {
                             ? Colors.white
                             : AppColors.primaryBright),
                     const SizedBox(height: 4),
-                    Text(
-                      category,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textDark,
-                        fontSize: 12,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
+                    Text(category,
+                        style: TextStyle(
+                            color:
+                                isSelected ? Colors.white : AppColors.textDark,
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal)),
                   ],
                 ),
               ),
@@ -704,9 +585,8 @@ class _AddPetFormState extends State<_AddPetForm> {
         filled: true,
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide.none,
-        ),
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -722,7 +602,6 @@ class _AddPetFormState extends State<_AddPetForm> {
           firstDate: DateTime(2000),
           lastDate: DateTime.now(),
           builder: (ctx, child) {
-            // ✅ ИСПРАВЛЕНО: правильный синтаксис Theme с именованным параметром 'data:'
             return Theme(
               data: Theme.of(ctx).copyWith(
                 colorScheme:
@@ -732,34 +611,29 @@ class _AddPetFormState extends State<_AddPetForm> {
             );
           },
         );
-        if (picked != null && mounted) {
-          setState(() => _birthDate = picked);
-        }
+        if (picked != null && mounted) setState(() => _birthDate = picked);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primary, width: 1.5),
-          borderRadius: BorderRadius.circular(20),
-          color: AppColors.background,
-        ),
+            border: Border.all(color: AppColors.primary, width: 1.5),
+            borderRadius: BorderRadius.circular(20),
+            color: AppColors.background),
         child: Row(
           children: [
             const Icon(Icons.calendar_today_outlined,
                 color: AppColors.primaryBright, size: 20),
             const SizedBox(width: 8),
             Text(
-              _birthDate == null
-                  ? 'Выбрать дату рождения'
-                  : '${_birthDate!.day}.${_birthDate!.month}.${_birthDate!.year}',
-              style: TextStyle(
-                color: _birthDate == null
-                    ? AppColors.primaryBright
-                    : AppColors.textDark,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
+                _birthDate == null
+                    ? 'Выбрать дату рождения'
+                    : '${_birthDate!.day}.${_birthDate!.month}.${_birthDate!.year}',
+                style: TextStyle(
+                    color: _birthDate == null
+                        ? AppColors.primaryBright
+                        : AppColors.textDark,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14)),
           ],
         ),
       ),
@@ -786,19 +660,17 @@ class _AddPetFormState extends State<_AddPetForm> {
 
   void _savePet() {
     if (_nameController.text.isEmpty || _birthDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Заполните обязательные поля'),
-            backgroundColor: AppColors.error),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Заполните обязательные поля'),
+          backgroundColor: AppColors.error));
       return;
     }
-
     final years =
         ((DateTime.now().difference(_birthDate!).inDays) / 365).floor();
     final ageStr = '$years ${years == 1 ? "год" : years < 5 ? "года" : "лет"}';
 
     widget.ref.read(homeProvider.notifier).addPet({
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'name': _nameController.text.trim(),
       'breed': _breedController.text.trim().isEmpty
           ? null
@@ -811,26 +683,18 @@ class _AddPetFormState extends State<_AddPetForm> {
 
     Navigator.pop(context);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('${_nameController.text.trim()} добавлен!'),
           backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+          behavior: SnackBarBehavior.floating));
     }
   }
 }
 
-// ============================================================================
-// ФОРМА ЗАПИСИ - ConsumerStatefulWidget для доступа к ref (SOLID Dependency Inversion)
-// ============================================================================
 class _AppointmentForm extends ConsumerStatefulWidget {
   final AppointmentType type;
   final String title;
-
   const _AppointmentForm({required this.type, required this.title});
-
   @override
   ConsumerState<_AppointmentForm> createState() => _AppointmentFormState();
 }
@@ -847,6 +711,18 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final pets = ref.read(homeProvider).pets;
+    if (_selectedPetId == null && pets.isNotEmpty) {
+      final firstPetId = pets.first['id'] as String?;
+      if (firstPetId != null && mounted) {
+        setState(() => _selectedPetId = firstPetId);
+      }
+    }
+  }
+
   Color _getTypeColor() {
     switch (widget.type) {
       case AppointmentType.clinic:
@@ -860,18 +736,30 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
     }
   }
 
+  String _getPawForType(AppointmentType type) {
+    switch (type) {
+      case AppointmentType.clinic:
+        return 'green_paw';
+      case AppointmentType.grooming:
+        return 'blue_paw';
+      case AppointmentType.vaccination:
+        return 'blue_paw';
+      case AppointmentType.other:
+        return 'paw_yellow';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final pets = ref.watch(homeProvider).pets;
-    _selectedPetId ??= pets.isNotEmpty ? pets.first['id'] as String? : null;
+    final homeState = ref.watch(homeProvider);
+    final pets = homeState.pets;
 
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        left: 24,
-        right: 24,
-        top: 24,
-      ),
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          left: 24,
+          right: 24,
+          top: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -896,17 +784,14 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: _getTypeColor()),
-        ),
+        Text(title,
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _getTypeColor())),
         IconButton(
-          icon: const Icon(Icons.close, color: AppColors.textGrey),
-          onPressed: () => Navigator.pop(context),
-        ),
+            icon: const Icon(Icons.close, color: AppColors.textGrey),
+            onPressed: () => Navigator.pop(context)),
       ],
     );
   }
@@ -917,14 +802,12 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
             color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          children: [
-            const Icon(Icons.pets_outlined, color: AppColors.textGrey),
-            const SizedBox(width: 8),
-            Text('Сначала добавьте питомца',
-                style: TextStyle(color: AppColors.textGrey)),
-          ],
-        ),
+        child: const Row(children: [
+          Icon(Icons.pets_outlined, color: AppColors.textGrey),
+          SizedBox(width: 8),
+          Text('Сначала добавьте питомца',
+              style: TextStyle(color: AppColors.textGrey))
+        ]),
       );
     }
 
@@ -946,19 +829,27 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
             child: DropdownButton<String>(
               value: _selectedPetId,
               isExpanded: true,
-              items: pets.map((pet) {
-                return DropdownMenuItem(
-                  value: pet['id'] as String,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.pets,
-                          size: 16, color: AppColors.primaryBright),
-                      const SizedBox(width: 8),
-                      Text(pet['name'] as String),
-                    ],
-                  ),
-                );
-              }).toList(),
+              hint: const Text('Выберите питомца'),
+              key: ValueKey(pets.length),
+              items: pets
+                  .map((pet) {
+                    final petId = pet['id'] as String?;
+                    final petName = pet['name'] as String? ?? 'Без имени';
+
+                    if (petId == null) return null;
+
+                    return DropdownMenuItem<String>(
+                      value: petId,
+                      child: Row(children: [
+                        const Icon(Icons.pets,
+                            size: 16, color: AppColors.primaryBright),
+                        const SizedBox(width: 8),
+                        Text(petName)
+                      ]),
+                    );
+                  })
+                  .whereType<DropdownMenuItem<String>>()
+                  .toList(),
               onChanged: (value) {
                 if (value != null) setState(() => _selectedPetId = value);
               },
@@ -978,7 +869,6 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
           firstDate: DateTime.now(),
           lastDate: DateTime.now().add(const Duration(days: 365)),
           builder: (ctx, child) {
-            // ✅ ИСПРАВЛЕНО: правильный синтаксис Theme с именованным параметром 'data:'
             return Theme(
               data: Theme.of(ctx).copyWith(
                 colorScheme: ColorScheme.light(primary: _getTypeColor()),
@@ -992,23 +882,19 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: _getTypeColor(), width: 1.5),
-          borderRadius: BorderRadius.circular(20),
-          color: AppColors.background,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.calendar_today_outlined,
-                color: _getTypeColor(), size: 20),
-            const SizedBox(width: 8),
-            Text(
-                '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
-                style: const TextStyle(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14)),
-          ],
-        ),
+            border: Border.all(color: _getTypeColor(), width: 1.5),
+            borderRadius: BorderRadius.circular(20),
+            color: AppColors.background),
+        child: Row(children: [
+          Icon(Icons.calendar_today_outlined, color: _getTypeColor(), size: 20),
+          const SizedBox(width: 8),
+          Text(
+              '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
+              style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14)),
+        ]),
       ),
     );
   }
@@ -1020,7 +906,6 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
           context: context,
           initialTime: _selectedTime,
           builder: (ctx, child) {
-            // ✅ ИСПРАВЛЕНО: правильный синтаксис Theme с именованным параметром 'data:'
             return Theme(
               data: Theme.of(ctx).copyWith(
                 colorScheme: ColorScheme.light(primary: _getTypeColor()),
@@ -1034,21 +919,18 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: _getTypeColor(), width: 1.5),
-          borderRadius: BorderRadius.circular(20),
-          color: AppColors.background,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.access_time_outlined, color: _getTypeColor(), size: 20),
-            const SizedBox(width: 8),
-            Text(_selectedTime.format(context),
-                style: const TextStyle(
-                    color: AppColors.textDark,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14)),
-          ],
-        ),
+            border: Border.all(color: _getTypeColor(), width: 1.5),
+            borderRadius: BorderRadius.circular(20),
+            color: AppColors.background),
+        child: Row(children: [
+          Icon(Icons.access_time_outlined, color: _getTypeColor(), size: 20),
+          const SizedBox(width: 8),
+          Text(_selectedTime.format(context),
+              style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14)),
+        ]),
       ),
     );
   }
@@ -1071,9 +953,8 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
             filled: true,
             fillColor: AppColors.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide.none,
-            ),
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -1101,24 +982,26 @@ class _AppointmentFormState extends ConsumerState<_AppointmentForm> {
   }
 
   void _saveAppointment() {
-    if (_selectedPetId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Выберите питомца'),
-            backgroundColor: AppColors.error),
-      );
+    if (_selectedPetId == null || _selectedPetId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Выберите питомца'), backgroundColor: AppColors.error));
       return;
     }
 
+    ref.read(calendarProvider.notifier).addTask(
+          _selectedDate,
+          widget.title,
+          _getPawForType(widget.type),
+        );
+
+    if (!mounted) return;
     Navigator.pop(context);
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('${widget.title}: запись создана!'),
           backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+          behavior: SnackBarBehavior.floating));
     }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:peto/core/theme/app_colors.dart';
-import 'package:peto/features/auth/presentation/screens/home_screen.dart';
+import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:peto/features/care_tracker/presentation/screens/care_tracker_screen.dart';
 
