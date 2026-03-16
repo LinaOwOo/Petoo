@@ -39,22 +39,26 @@ class CareTask {
 class CareTrackerState {
   final List<CareTask> tasks;
   final String? selectedPetId;
+  final Map<String, int> waterCounts;
   final bool isLoading;
 
   const CareTrackerState({
     required this.tasks,
     this.selectedPetId,
+    this.waterCounts = const {},
     this.isLoading = false,
   });
 
   CareTrackerState copyWith({
     List<CareTask>? tasks,
     String? selectedPetId,
+    Map<String, int>? waterCounts,
     bool? isLoading,
   }) {
     return CareTrackerState(
       tasks: tasks ?? this.tasks,
       selectedPetId: selectedPetId ?? this.selectedPetId,
+      waterCounts: waterCounts ?? this.waterCounts,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -75,9 +79,9 @@ class CareTrackerState {
   List<CareTask> getWeekTasks(String petId) {
     final now = DateTime.now();
     final weekAgo = now.subtract(const Duration(days: 7));
-    return getTasksForPet(petId).where((task) {
-      return task.date.isAfter(weekAgo);
-    }).toList();
+    return getTasksForPet(petId)
+        .where((task) => task.date.isAfter(weekAgo))
+        .toList();
   }
 }
 
@@ -90,9 +94,14 @@ class CareTrackerNotifier extends StateNotifier<CareTrackerState> {
   }
 
   void addTask(CareTask task) {
-    state = state.copyWith(
-      tasks: [...state.tasks, task],
-    );
+    state = state.copyWith(tasks: [...state.tasks, task]);
+  }
+
+  void incrementWater(String petId) {
+    final current = state.waterCounts[petId] ?? 1;
+    final newCounts = Map<String, int>.from(state.waterCounts);
+    newCounts[petId] = current + 1;
+    state = state.copyWith(waterCounts: newCounts);
   }
 
   void completeTask(String taskId) {
@@ -104,32 +113,6 @@ class CareTrackerNotifier extends StateNotifier<CareTrackerState> {
         return task;
       }).toList(),
     );
-  }
-
-  void removeTask(String taskId) {
-    state = state.copyWith(
-      tasks: state.tasks.where((task) => task.id != taskId).toList(),
-    );
-  }
-
-  void clearTodayTasks(String petId) {
-    final todayTasks = getTodayTaskIds(petId);
-    state = state.copyWith(
-      tasks:
-          state.tasks.where((task) => !todayTasks.contains(task.id)).toList(),
-    );
-  }
-
-  List<String> getTodayTaskIds(String petId) {
-    final now = DateTime.now();
-    return state.tasks
-        .where((task) =>
-            task.petId == petId &&
-            task.date.year == now.year &&
-            task.date.month == now.month &&
-            task.date.day == now.day)
-        .map((task) => task.id)
-        .toList();
   }
 }
 

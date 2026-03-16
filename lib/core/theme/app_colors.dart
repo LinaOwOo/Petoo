@@ -10,8 +10,8 @@ class AppColors {
 
   static const Color success = Color(0xFFCBEEB8);
   static const Color info = Color(0xFFDBF0FF);
-  static const Color warning = Color(0xFFFFFBCE);
-  static const Color error = Color(0xFFFFE8E8);
+  static const Color warning = Color(0xFFFFDD54);
+  static const Color error = Color(0xFFFF8080);
   static const Color secondary = Color(0xFFEEB8B9);
 
   static const Color textDark = Color(0xFF333333);

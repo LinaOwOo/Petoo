@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:peto/core/theme/app_colors.dart';
+import 'package:peto/features/care_tracker/presentation/provider/care_tracker_provider.dart';
 import 'package:peto/features/home/presentation/providers/home_provider.dart';
 import 'package:peto/features/home/presentation/screens/home_screen.dart';
-import 'package:peto/features/auth/presentation/screens/profile_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
-import '../provider/care_tracker_provider.dart';
+import 'package:peto/features/profile/presentation/screen/profile_screen.dart';
 
 class CareTrackerScreen extends ConsumerStatefulWidget {
   const CareTrackerScreen({super.key});
@@ -33,7 +33,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildHeader(pets, selectedPetId),
+            _buildHeader(pets, selectedPetId, careState),
             Expanded(
               child: pets.isEmpty || selectedPetId == null
                   ? _buildEmptyState()
@@ -47,26 +47,42 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
     );
   }
 
-  Widget _buildHeader(List<Map<String, dynamic>> pets, String? selectedPetId) {
+  Widget _buildHeader(
+    List<Map<String, dynamic>> pets,
+    String? selectedPetId,
+    CareTrackerState careState,
+  ) {
     if (pets.isEmpty) {
       return _buildEmptyHeader();
     }
 
     final selectedPet = pets.firstWhere(
       (p) => p['id'] == selectedPetId,
-      orElse: () =>
-          pets.firstOrNull ?? {'name': 'PetCare', 'category': 'Собаки'},
+      orElse: () => pets.first,
     );
+
+    final currentIndex = pets.indexWhere((p) => p['id'] == selectedPetId);
+    final hasPrev = currentIndex > 0;
+    final hasNext = currentIndex < pets.length - 1;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          if (hasPrev)
+            IconButton(
+              icon: const Icon(Icons.chevron_left,
+                  color: AppColors.primaryBright),
+              onPressed: () {
+                final prevId = pets[currentIndex - 1]['id'] as String;
+                ref.read(careTrackerProvider.notifier).selectPet(prevId);
+              },
+            ),
           SvgPicture.asset(
             _getPetIcon(selectedPet['category'] as String?),
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
             colorFilter: const ColorFilter.mode(
               AppColors.primaryBright,
               BlendMode.srcIn,
@@ -81,6 +97,16 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
               color: AppColors.primaryBright,
             ),
           ),
+          const SizedBox(width: 12),
+          if (hasNext)
+            IconButton(
+              icon: const Icon(Icons.chevron_right,
+                  color: AppColors.primaryBright),
+              onPressed: () {
+                final nextId = pets[currentIndex + 1]['id'] as String;
+                ref.read(careTrackerProvider.notifier).selectPet(nextId);
+              },
+            ),
         ],
       ),
     );
@@ -92,11 +118,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.pets_outlined,
-            size: 40,
-            color: AppColors.primaryBright,
-          ),
+          Icon(Icons.pets_outlined, size: 32, color: AppColors.primaryBright),
           SizedBox(width: 12),
           Text(
             'Трекер ухода',
@@ -192,6 +214,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
   Widget _buildTrackerContent(String petId, CareTrackerState state) {
     final todayTasks = state.getTodayTasks(petId);
     final weekTasks = state.getWeekTasks(petId);
+    final waterCount = state.waterCounts[petId] ?? 1;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -206,7 +229,6 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
             lastUpdate:
                 _getLastUpdate(weekTasks.where((t) => t.type == 'food')),
             frequency: 'Каждый день',
-            buttons: const ['Добавить'],
             petId: petId,
             type: 'food',
           ),
@@ -216,11 +238,10 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
             iconColor: AppColors.primary,
             bgColor: AppColors.info,
             title: 'Вода',
-            stats: '1 Миска',
+            stats: '$waterCount Миска',
             lastUpdate:
                 _getLastUpdate(weekTasks.where((t) => t.type == 'water')),
             frequency: 'Каждый день',
-            buttons: const ['Добавить'],
             petId: petId,
             type: 'water',
           ),
@@ -231,9 +252,9 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
             bgColor: AppColors.secondary.withValues(alpha: 0.15),
             title: 'Туалет',
             stats: '',
-            lastUpdate: '',
-            frequency: '',
-            buttons: const ['Наполнен', 'Убран', 'Помыт'],
+            lastUpdate:
+                _getLastUpdate(weekTasks.where((t) => t.type == 'toilet')),
+            frequency: 'По необходимости',
             petId: petId,
             type: 'toilet',
           ),
@@ -245,9 +266,7 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
   String _getLastUpdate(Iterable<CareTask> tasks) {
     if (tasks.isEmpty) return 'На неделе';
     final lastTask = tasks.reduce((a, b) => a.date.isAfter(b.date) ? a : b);
-    final now = DateTime.now();
-    final diff = now.difference(lastTask.date).inDays;
-
+    final diff = DateTime.now().difference(lastTask.date).inDays;
     if (diff == 0) return 'Сегодня';
     if (diff == 1) return 'Вчера';
     if (diff < 7) return '$diff дн. назад';
@@ -262,7 +281,6 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
     required String stats,
     required String lastUpdate,
     required String frequency,
-    required List<String> buttons,
     required String petId,
     required String type,
   }) {
@@ -293,17 +311,13 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
               icon,
               width: 68,
               height: 68,
-              colorFilter: ColorFilter.mode(
-                iconColor,
-                BlendMode.srcIn,
-              ),
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 if (stats.isNotEmpty) ...[
                   Container(
@@ -325,18 +339,15 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => _addTask(petId, type),
+                          onTap: () => _handlePlus(petId, type),
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: iconColor,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.add,
-                              color: Colors.white,
-                              size: 16,
-                            ),
+                            child: const Icon(Icons.add,
+                                color: Colors.white, size: 16),
                           ),
                         ),
                       ],
@@ -348,29 +359,23 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
                 const SizedBox(height: 8),
                 _buildInfoRow('Обновление', frequency),
                 const SizedBox(height: 12),
-                ...buttons.map((btn) => Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: ElevatedButton(
-                        onPressed: () => _handleButtonAction(btn, petId, type),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: iconColor,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: iconColor, width: 1.5),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          btn,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    )),
+                ElevatedButton(
+                  onPressed: () => _handleUpdate(petId, type),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: iconColor,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: iconColor, width: 1.5),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Обновить',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ),
               ],
             ),
           ),
@@ -411,44 +416,36 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
     );
   }
 
-  void _addTask(String petId, String type) {
+  void _handlePlus(String petId, String type) {
+    if (type == 'water') {
+      ref.read(careTrackerProvider.notifier).incrementWater(petId);
+    } else {
+      final task = CareTask(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        petId: petId,
+        type: type,
+        date: DateTime.now(),
+      );
+      ref.read(careTrackerProvider.notifier).addTask(task);
+    }
+  }
+
+  void _handleUpdate(String petId, String type) {
     final task = CareTask(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       petId: petId,
       type: type,
       date: DateTime.now(),
-      completed: false,
     );
     ref.read(careTrackerProvider.notifier).addTask(task);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-            'Задача добавлена: ${type == 'food' ? 'Кормление' : type == 'water' ? 'Вода' : 'Туалет'}'),
+        content: Text('Обновлено: $type'),
         backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
       ),
     );
-  }
-
-  void _handleButtonAction(String action, String petId, String type) {
-    switch (action) {
-      case 'Добавить':
-        _addTask(petId, type);
-        break;
-      case 'Наполнен':
-      case 'Убран':
-      case 'Помыт':
-        _addTask(petId, type);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$action: туалет'),
-            backgroundColor: AppColors.secondary,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        break;
-    }
   }
 
   Widget _buildBottomNavBar() {
@@ -499,17 +496,13 @@ class _CareTrackerScreenState extends ConsumerState<CareTrackerScreen> {
   void _navigateToScreen(int index) {
     if (index == _navIndex) return;
 
-    setState(() {
-      _navIndex = index;
-    });
+    setState(() => _navIndex = index);
 
     switch (index) {
       case 0:
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
-        break;
-      case 1:
         break;
       case 2:
         Navigator.of(context).pushReplacement(

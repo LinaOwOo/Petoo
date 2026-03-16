@@ -5,7 +5,7 @@ import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import 'package:peto/features/home/presentation/screens/pet_details_screen.dart';
 import 'package:peto/features/care_tracker/presentation/screens/care_tracker_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
-import 'package:peto/features/auth/presentation/screens/profile_screen.dart';
+import 'package:peto/features/profile/presentation/screen/profile_screen.dart';
 
 class AppRoutes {
   AppRoutes._();

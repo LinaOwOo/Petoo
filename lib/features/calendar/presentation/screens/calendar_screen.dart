@@ -6,25 +6,31 @@ import 'package:peto/core/widgets/bottom_nav.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/calendar_month_provider.dart';
 
-// ============================================================================
-// CalendarScreen - ConsumerWidget согласно принципам Riverpod из архитектура.docx
-// Состояние месяца вынесено в calendarMonthProvider (SOLID - Single Responsibility)
-// ============================================================================
-class CalendarScreen extends ConsumerWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
+  DateTime _selectedDate = DateTime.now();
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(calendarProvider);
     final notifier = ref.read(calendarProvider.notifier);
     final currentMonth = ref.watch(calendarMonthProvider);
 
+    final dayTasks = state.tasks
+        .where((t) => _isSameDay(t['date'] as DateTime, _selectedDate))
+        .toList();
+
     return Scaffold(
-      backgroundColor: AppColors.background, // #F7FAFF из цвета.docx
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 20), // UI Kit: единые отступы
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               const SizedBox(height: 20),
@@ -34,45 +40,37 @@ class CalendarScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Expanded(
                 child: _buildCalendarGrid(
-                  context, // ✅ Передаём BuildContext для _buildDayCell
                   state.tasks,
                   notifier,
                   currentMonth,
                 ),
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: _buildTaskSummary(state.tasks),
+              const SizedBox(height: 16),
+              _buildAddButton(context, notifier),
+              if (dayTasks.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: _buildTaskSummary(dayTasks),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 24),
-              const BottomNav(
-                  currentIndex: 2), // ✅ Shared-виджет из core/widgets/ (DRY)
+              const BottomNav(currentIndex: 2),
               const SizedBox(height: 10),
             ],
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary, // #B8D7EE из цвета.docx
-        onPressed: () => _showAddTaskModal(context, notifier, currentMonth),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
-  // ============================================================================
-  // Заголовок календаря с навигацией по месяцам
-  // Управление состоянием через calendarMonthProvider (Riverpod Pattern)
-  // ============================================================================
   Widget _buildMonthHeader(WidgetRef ref, DateTime currentMonth) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left,
-              color: AppColors.primaryBright), // #7EBCE8
+          icon: const Icon(Icons.chevron_left, color: AppColors.primaryBright),
           onPressed: () {
             ref.read(calendarMonthProvider.notifier).previousMonth();
           },
@@ -113,9 +111,6 @@ class CalendarScreen extends ConsumerWidget {
     return '${months[date.month - 1]} ${date.year}';
   }
 
-  // ============================================================================
-  // Заголовки дней недели (понедельник-воскресенье)
-  // ============================================================================
   Widget _buildWeekdayHeaders() {
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     return Row(
@@ -133,12 +128,7 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  // ============================================================================
-  // Сетка календаря: генерация 42 ячеек (6 недель × 7 дней)
-  // ✅ ИСПРАВЛЕНО: передаём BuildContext в _buildDayCell (SOLID - Dependency Inversion)
-  // ============================================================================
   Widget _buildCalendarGrid(
-    BuildContext context, // ✅ Добавлен BuildContext первым параметром
     List<Map<String, dynamic>> tasks,
     CalendarNotifier notifier,
     DateTime currentMonth,
@@ -146,36 +136,30 @@ class CalendarScreen extends ConsumerWidget {
     final firstDay = DateTime(currentMonth.year, currentMonth.month, 1);
     final daysInMonth =
         DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final firstWeekday = firstDay.weekday; // 1 = Mon, 7 = Sun
+    final firstWeekday = firstDay.weekday;
     final daysBefore = firstWeekday - 1;
-    const totalCells = 42; // 6 rows × 7 days
+    const totalCells = 42;
 
     final cells = <Widget>[];
 
-    // Дни предыдущего месяца
     for (int i = 0; i < daysBefore; i++) {
       final dayNum = DateTime(currentMonth.year, currentMonth.month, 0).day -
           daysBefore +
           i +
           1;
       final date = DateTime(currentMonth.year, currentMonth.month - 1, dayNum);
-      cells.add(_buildDayCell(
-          context, date, false, tasks, notifier)); // ✅ Передаём context
+      cells.add(_buildDayCell(date, false, tasks, notifier));
     }
 
-    // Дни текущего месяца
     for (int d = 1; d <= daysInMonth; d++) {
       final date = DateTime(currentMonth.year, currentMonth.month, d);
-      cells.add(_buildDayCell(
-          context, date, true, tasks, notifier)); // ✅ Передаём context
+      cells.add(_buildDayCell(date, true, tasks, notifier));
     }
 
-    // Дни следующего месяца
     final filled = daysBefore + daysInMonth;
     for (int i = 1; i <= totalCells - filled; i++) {
       final date = DateTime(currentMonth.year, currentMonth.month + 1, i);
-      cells.add(_buildDayCell(
-          context, date, false, tasks, notifier)); // ✅ Передаём context
+      cells.add(_buildDayCell(date, false, tasks, notifier));
     }
 
     return GridView.count(
@@ -187,13 +171,7 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  // ============================================================================
-  // Ячейка дня календаря
-  // ✅ ИСПРАВЛЕНО: принимает BuildContext для навигации (Dependency Inversion)
-  // Цветовая схема: цвета лапок из цвета.docx через _getPawColor()
-  // ============================================================================
   Widget _buildDayCell(
-    BuildContext context, // ✅ BuildContext первым параметром
     DateTime date,
     bool isCurrentMonth,
     List<Map<String, dynamic>> tasks,
@@ -206,21 +184,17 @@ class CalendarScreen extends ConsumerWidget {
         dayTasks.isNotEmpty ? dayTasks.first['paw'] as String? : null;
 
     return GestureDetector(
-      onTap: () => _showAddTaskModal(
-        context, // ✅ Используем переданный BuildContext (не метод!)
-        notifier,
-        date,
-      ),
+      onTap: () {
+        setState(() => _selectedDate = date);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: isToday
-              ? AppColors.primary
-                  .withValues(alpha: 0.15) // #B8D7EE с прозрачностью
+              ? AppColors.primary.withValues(alpha: 0.15)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12), // UI Kit: скругления
+          borderRadius: BorderRadius.circular(12),
           border: isToday
-              ? Border.all(
-                  color: AppColors.primaryBright, width: 1.5) // #7EBCE8
+              ? Border.all(color: AppColors.primaryBright, width: 1.5)
               : null,
         ),
         child: Column(
@@ -238,7 +212,6 @@ class CalendarScreen extends ConsumerWidget {
             ),
             if (pawIcon != null) ...[
               const SizedBox(height: 2),
-              // ✅ SVG иконка с цветным фильтром согласно цвета.docx
               SvgPicture.asset(
                 'assets/icons/$pawIcon.svg',
                 width: 14,
@@ -254,7 +227,7 @@ class CalendarScreen extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBright, // #7EBCE8
+                    color: AppColors.primaryBright,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -274,70 +247,70 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  // ============================================================================
-  // Цвет лапки в зависимости от типа задачи (цвета из цвета.docx)
-  // ============================================================================
   Color _getPawColor(String pawType) {
     switch (pawType) {
       case 'blue_paw':
-        return AppColors.primaryBright; // #7EBCE8
+        return AppColors.primaryBright;
       case 'green_paw':
-        return AppColors.success; // #CBEEB8
+        return AppColors.success;
       case 'yellow_paw':
-        return AppColors.warning; // #FFFBCE
+        return AppColors.warning;
       case 'pink_paw':
-        return AppColors.secondary; // #EEB8B9
+        return AppColors.secondary;
       default:
         return AppColors.primaryBright;
     }
   }
 
-  // ============================================================================
-  // Блок задач: "Сегодня" и "Завтра"
-  // Цвета блоков: Info (#DBF0FF) и Warning (#FFFBCE) из цвета.docx
-  // ============================================================================
-  Widget _buildTaskSummary(List<Map<String, dynamic>> tasks) {
-    final today = DateTime.now();
-    final tomorrow = today.add(const Duration(days: 1));
+  Widget _buildAddButton(BuildContext context, CalendarNotifier notifier) {
+    return Center(
+      child: GestureDetector(
+        onTap: () => _showAddTaskModal(context, notifier),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
+      ),
+    );
+  }
 
+  Widget _buildTaskSummary(List<Map<String, dynamic>> tasks) {
     return Column(
       children: [
         _buildTaskSection(
-          'Сегодня',
-          _getTasksForDate(tasks, today),
-          AppColors.info, // #DBF0FF
-        ),
-        const SizedBox(height: 12),
-        _buildTaskSection(
-          'Завтра',
-          _getTasksForDate(tasks, tomorrow),
-          AppColors.warning, // #FFFBCE
+          _getDayTitle(_selectedDate),
+          tasks,
         ),
       ],
     );
   }
 
-  List<Map<String, dynamic>> _getTasksForDate(
-    List<Map<String, dynamic>> tasks,
-    DateTime date,
-  ) {
-    return tasks.where((t) => _isSameDay(t['date'] as DateTime, date)).toList();
+  String _getDayTitle(DateTime date) {
+    final now = DateTime.now();
+    final tomorrow = now.add(const Duration(days: 1));
+    if (_isSameDay(date, now)) return 'Сегодня';
+    if (_isSameDay(date, tomorrow)) return 'Завтра';
+    return '${date.day}.${date.month}.${date.year}';
   }
 
-  // ============================================================================
-  // Секция задач с чекбоксами
-  // UI Kit: единые отступы, скругления, типографика
-  // ============================================================================
-  Widget _buildTaskSection(
-    String title,
-    List<Map<String, dynamic>> tasks,
-    Color bgColor,
-  ) {
+  Widget _buildTaskSection(String title, List<Map<String, dynamic>> tasks) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20), // UI Kit: скругления
+        color: AppColors.info,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,104 +324,72 @@ class CalendarScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          if (tasks.isEmpty)
-            Text(
-              'Нет задач',
-              style: TextStyle(
-                color: AppColors.textGrey.withValues(alpha: 0.8),
-                fontSize: 15,
+          ...tasks.map((task) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/${task['paw']}.svg',
+                    width: 24,
+                    height: 24,
+                    colorFilter: ColorFilter.mode(
+                      _getPawColor(task['paw'] as String),
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      task['title'] as String,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textDark,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Checkbox(
+                    value: task['completed'] as bool,
+                    onChanged: (value) {
+                      if (value != null) {
+                        final id = task['id'] as String;
+                        ref.read(calendarProvider.notifier).toggleTaskById(id);
+                      }
+                    },
+                    activeColor: AppColors.primaryBright,
+                  ),
+                ],
               ),
-            )
-          else
-            ...tasks.map((task) {
-              final index = _findTaskIndex(task);
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    // ✅ Цветная лапка через SvgPicture + colorFilter
-                    SvgPicture.asset(
-                      'assets/icons/${task['paw']}.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(
-                        _getPawColor(task['paw'] as String),
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        task['title'] as String,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textDark,
-                          fontWeight: FontWeight.w500,
-                          height: 1.4,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Checkbox(
-                      value: task['completed'] as bool,
-                      onChanged: (value) {
-                        if (value != null && index != -1) {
-                          // В реальном проекте: использовать ref.read() здесь
-                          // Для ConsumerWidget нужен ConsumerState или передача notifier
-                        }
-                      },
-                      activeColor: AppColors.primaryBright, // #7EBCE8
-                    ),
-                  ],
-                ),
-              );
-            }),
+            );
+          }),
         ],
       ),
     );
   }
 
-  int _findTaskIndex(Map<String, dynamic> task) {
-    // Заглушка: в реальном проекте логика поиска должна быть в провайдере
-    // Согласно архитектура.docx: бизнес-логика в domain/data слоях
-    return -1;
-  }
-
-  // ============================================================================
-  // Модальное окно добавления задачи
-  // Вынесено в отдельный виджет _AddTaskForm (SOLID - SRP)
-  // ============================================================================
-  void _showAddTaskModal(
-    BuildContext context,
-    CalendarNotifier notifier,
-    DateTime initialDate,
-  ) {
+  void _showAddTaskModal(BuildContext context, CalendarNotifier notifier) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent, // Для скругления сверху
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => _AddTaskForm(
         notifier: notifier,
-        initialDate: initialDate,
+        initialDate: _selectedDate,
       ),
     );
   }
 
-  // ============================================================================
-  // Утилита: сравнение дат по дням (без учёта времени)
-  // ============================================================================
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
 
-// ============================================================================
-// _AddTaskForm - отдельный StatefulWidget для формы добавления задачи
-// SOLID - Single Responsibility: форма отвечает только за ввод данных
-// ============================================================================
 class _AddTaskForm extends StatefulWidget {
   final CalendarNotifier notifier;
   final DateTime initialDate;
@@ -465,6 +406,7 @@ class _AddTaskForm extends StatefulWidget {
 class _AddTaskFormState extends State<_AddTaskForm> {
   final _titleController = TextEditingController();
   String _selectedPaw = 'blue_paw';
+  bool _hasReminder = false;
 
   @override
   void dispose() {
@@ -489,18 +431,14 @@ class _AddTaskFormState extends State<_AddTaskForm> {
         top: 24,
       ),
       child: Container(
-        // ✅ Container поддерживает 'decoration'
-        padding:
-            const EdgeInsets.all(24), // ✅ Внутренние отступы перенесены сюда
+        padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
-          color: AppColors.surface, // #FFFFFF из цвета.docx
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(20)), // UI Kit: скругления
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Заголовок модалки
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -509,7 +447,7 @@ class _AddTaskFormState extends State<_AddTaskForm> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBright, // #7EBCE8
+                    color: AppColors.primaryBright,
                   ),
                 ),
                 IconButton(
@@ -519,8 +457,6 @@ class _AddTaskFormState extends State<_AddTaskForm> {
               ],
             ),
             const SizedBox(height: 24),
-
-            // Отображение выбранной даты
             Text(
               '${widget.initialDate.day}.${widget.initialDate.month}.${widget.initialDate.year}',
               style: const TextStyle(
@@ -529,8 +465,6 @@ class _AddTaskFormState extends State<_AddTaskForm> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Поле ввода названия задачи
             TextField(
               controller: _titleController,
               autofocus: true,
@@ -539,7 +473,7 @@ class _AddTaskFormState extends State<_AddTaskForm> {
                 prefixIcon:
                     const Icon(Icons.edit_note, color: AppColors.primaryBright),
                 filled: true,
-                fillColor: AppColors.background, // #F7FAFF
+                fillColor: AppColors.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
@@ -549,8 +483,6 @@ class _AddTaskFormState extends State<_AddTaskForm> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Выбор типа задачи (лапки)
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -599,7 +531,6 @@ class _AddTaskFormState extends State<_AddTaskForm> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ✅ SVG иконка с динамическим цветом
                         SvgPicture.asset(
                           'assets/icons/${paw['name']}.svg',
                           width: 24,
@@ -626,20 +557,36 @@ class _AddTaskFormState extends State<_AddTaskForm> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text(
+                  'Напомнить',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textGrey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Switch(
+                  value: _hasReminder,
+                  onChanged: (v) => setState(() => _hasReminder = v),
+                  activeThumbColor: AppColors.primaryBright,
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
-
-            // Кнопка сохранения
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: _saveTask,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary, // #B8D7EE
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                      borderRadius: BorderRadius.circular(20)),
                   textStyle: const TextStyle(
                       fontWeight: FontWeight.w600, fontSize: 16),
                 ),
@@ -653,16 +600,12 @@ class _AddTaskFormState extends State<_AddTaskForm> {
     );
   }
 
-  // ============================================================================
-  // Сохранение задачи через notifier (Riverpod Pattern)
-  // Валидация и обратная связь пользователю
-  // ============================================================================
   void _saveTask() {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Введите описание задачи'),
-          backgroundColor: AppColors.error, // #FFE8E8
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -672,13 +615,14 @@ class _AddTaskFormState extends State<_AddTaskForm> {
       widget.initialDate,
       _titleController.text.trim(),
       _selectedPaw,
+      hasReminder: _hasReminder,
     );
 
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Задача добавлена!'),
-        backgroundColor: AppColors.success, // #CBEEB8
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
       ),
     );

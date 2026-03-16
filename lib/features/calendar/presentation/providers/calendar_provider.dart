@@ -11,48 +11,62 @@ class CalendarNotifier extends Notifier<CalendarState> {
     final now = DateTime.now();
     return CalendarState(tasks: [
       {
+        'id': '1',
         'date': DateTime(now.year, now.month, 5),
         'title': 'Сходить на прием к стоматологу',
         'completed': false,
         'paw': 'green_paw',
+        'hasReminder': false,
       },
       {
+        'id': '2',
         'date': DateTime(now.year, now.month, 9),
         'title': 'Вакцинация',
         'completed': false,
         'paw': 'blue_paw',
+        'hasReminder': false,
       },
       {
+        'id': '3',
         'date': DateTime(now.year, now.month, 22),
         'title': 'Плановый осмотр',
         'completed': false,
         'paw': 'blue_paw',
+        'hasReminder': false,
       },
       {
+        'id': '4',
         'date': DateTime(now.year, now.month, 7),
         'title': 'Купить таблетки',
         'completed': false,
-        'paw': 'paw_yellow',
+        'paw': 'yellow_paw',
+        'hasReminder': false,
       },
     ]);
   }
 
-  void addTask(DateTime date, String title, String paw) {
+  void addTask(DateTime date, String title, String paw,
+      {bool hasReminder = false}) {
     state = CalendarState(tasks: [
       ...state.tasks,
       {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'date': date,
         'title': title,
         'completed': false,
         'paw': paw,
+        'hasReminder': hasReminder,
       },
     ]);
   }
 
-  void toggleTask(int index) {
+  void toggleTaskById(String id) {
     final newTasks = List<Map<String, dynamic>>.from(state.tasks);
-    newTasks[index]['completed'] = !newTasks[index]['completed'];
-    state = CalendarState(tasks: newTasks);
+    final index = newTasks.indexWhere((t) => t['id'] == id);
+    if (index != -1) {
+      newTasks[index]['completed'] = !newTasks[index]['completed'];
+      state = CalendarState(tasks: newTasks);
+    }
   }
 }
 
