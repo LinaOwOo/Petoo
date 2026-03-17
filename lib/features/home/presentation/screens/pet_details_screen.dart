@@ -397,40 +397,41 @@ class _EditPetFormState extends ConsumerState<_EditPetForm> {
   }
 }
 
-class _StatCircle extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color borderColor;
-  const _StatCircle(this.value, this.label,
-      [this.borderColor = AppColors.primaryBright]);
+// class _StatCircle extends StatelessWidget {
+//   final String value;
+//   final String label;
+//   final Color borderColor;
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: borderColor, width: 6),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            value,
-            style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(color: AppColors.textGrey)),
-      ],
-    );
-  }
-}
+//   const _StatCircle(this.value, this.label,
+//       {this.borderColor = AppColors.primaryBright});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         Container(
+//           width: 80,
+//           height: 80,
+//           decoration: BoxDecoration(
+//             shape: BoxShape.circle,
+//             border: Border.all(color: borderColor, width: 6),
+//           ),
+//           alignment: Alignment.center,
+//           child: Text(
+//             value,
+//             style: const TextStyle(
+//                 fontSize: 22,
+//                 fontWeight: FontWeight.bold,
+//                 color: AppColors.textDark),
+//           ),
+//         ),
+//         const SizedBox(height: 8),
+//         Text(label,
+//             style: Theme.of(context)
+//                 .textTheme
+//                 .labelMedium
+//                 ?.copyWith(color: AppColors.textGrey)),
+//       ],
+//     );
+//   }
+// }

@@ -43,11 +43,9 @@ class BottomNav extends StatelessWidget {
           final isActive = index == currentIndex;
 
           return GestureDetector(
-            // ✅ ВАЖНО: HitTestBehavior.opaque для надёжного тапа
             behavior: HitTestBehavior.opaque,
             onTap: () {
               if (index != currentIndex) {
-                // ✅ GoRouter навигация
                 context.go(navItems[index]['route']!);
               }
             },

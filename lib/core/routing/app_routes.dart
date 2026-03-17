@@ -1,47 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:peto/core/theme/app_colors.dart';
+import 'package:peto/features/auth/presentation/providers/auth_provider.dart';
+import 'package:peto/features/auth/presentation/screens/login_screen.dart';
+import 'package:peto/features/auth/presentation/screens/register_screen.dart';
+import 'package:peto/features/onboarding/presentation/screens/splash_screen.dart';
 import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import 'package:peto/features/home/presentation/screens/pet_details_screen.dart';
 import 'package:peto/features/care_tracker/presentation/screens/care_tracker_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
-import 'package:peto/features/profile/presentation/screen/profile_screen.dart';
+import 'package:peto/features/profile/presentation/screens/profile_screen.dart';
 
-class AppRoutes {
-  AppRoutes._();
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-  static const String home = '/home';
-  static const String careTracker = '/care-tracker';
-  static const String calendar = '/calendar';
-  static const String profile = '/profile';
-  static const String petDetails = '/pet-details';
+final goRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
 
-  static final GoRouter router = GoRouter(
-    initialLocation: home,
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/',
     debugLogDiagnostics: true,
+    redirect: (context, state) {
+      final isAuthenticated = authState.isAuthenticated;
+      final currentPath = state.uri.toString();
+
+      if (!isAuthenticated) {
+        if (currentPath.startsWith('/home') ||
+            currentPath.startsWith('/pet-details') ||
+            currentPath == '/care-tracker' ||
+            currentPath == '/calendar' ||
+            currentPath == '/profile') {
+          return '/login';
+        }
+        return null;
+      }
+
+      if (currentPath == '/login' || currentPath == '/register') {
+        return '/';
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
-        path: home,
+        path: '/',
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/home',
         name: 'home',
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: careTracker,
+        path: '/care-tracker',
         name: 'care-tracker',
         builder: (context, state) => const CareTrackerScreen(),
       ),
       GoRoute(
-        path: calendar,
+        path: '/calendar',
         name: 'calendar',
         builder: (context, state) => const CalendarScreen(),
       ),
       GoRoute(
-        path: profile,
+        path: '/profile',
         name: 'profile',
         builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
-        path: '$petDetails/:petId',
+        path: '/pet-details/:petId',
         name: 'pet-details',
         builder: (context, state) {
           final petId = state.pathParameters['petId']!;
@@ -61,17 +99,17 @@ class AppRoutes {
               color: AppColors.primaryBright,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Страница не найдена',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                color: AppColors.textDark,
               ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () => context.go(home),
+              onPressed: () => context.go('/home'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -88,4 +126,4 @@ class AppRoutes {
       ),
     ),
   );
-}
+});

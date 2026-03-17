@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:go_router/go_router.dart';
 import 'package:peto/core/theme/app_colors.dart';
-import 'package:peto/core/routing/app_routes.dart';
 import 'package:peto/features/home/presentation/providers/home_provider.dart';
 import 'package:peto/core/widgets/bottom_nav.dart';
 import 'package:peto/features/calendar/presentation/providers/calendar_provider.dart';
@@ -220,12 +219,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return GestureDetector(
       onTap: () {
         if (petId != null && context.mounted) {
-          context.go('${AppRoutes.petDetails}/$petId');
+          context.go('/pet-details/$petId');
         } else if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Экран питомца в разработке'),
-                backgroundColor: AppColors.info),
+              content: Text('Экран питомца в разработке'),
+              backgroundColor: AppColors.info,
+            ),
           );
         }
       },

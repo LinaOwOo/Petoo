@@ -52,10 +52,6 @@ class Appointment {
   }
 }
 
-// ============================================================================
-// AppointmentForm - ConsumerStatefulWidget для доступа к homeProvider
-// SOLID - Single Responsibility: форма отвечает только за ввод данных записи
-// ============================================================================
 class AppointmentForm extends ConsumerStatefulWidget {
   final String type;
   final String title;
@@ -139,18 +135,17 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
   }
 
   Color _getTypeColor(String type) {
-    // ✅ Цветовая схема из цвета.docx
     switch (type) {
       case 'clinic':
-        return AppColors.success; // #CBEEB8
+        return AppColors.success;
       case 'grooming':
-        return AppColors.info; // #DBF0FF
+        return AppColors.info;
       case 'vaccination':
-        return AppColors.secondary; // #EEB8B9
+        return AppColors.secondary;
       case 'other':
-        return AppColors.warning; // #FFFBCE
+        return AppColors.warning;
       default:
-        return AppColors.primaryBright; // #7EBCE8
+        return AppColors.primaryBright;
     }
   }
 
@@ -159,7 +154,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surface, // #FFFFFF
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
         ),
         child: const Row(
@@ -231,7 +226,6 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
           firstDate: DateTime.now(),
           lastDate: DateTime.now().add(const Duration(days: 365)),
           builder: (context, child) {
-            // ✅ ИСПРАВЛЕНО: правильный синтаксис Theme с именованным параметром 'data:'
             return Theme(
               data: Theme.of(context).copyWith(
                 colorScheme: ColorScheme.light(
@@ -251,7 +245,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
         decoration: BoxDecoration(
           border: Border.all(color: _getTypeColor(widget.type), width: 1.5),
           borderRadius: BorderRadius.circular(20),
-          color: AppColors.background, // #F7FAFF
+          color: AppColors.background,
         ),
         child: Row(
           children: [
@@ -282,7 +276,6 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
           context: context,
           initialTime: _selectedTime,
           builder: (context, child) {
-            // ✅ ИСПРАВЛЕНО: правильный синтаксис Theme с именованным параметром 'data:'
             return Theme(
               data: Theme.of(context).copyWith(
                 colorScheme: ColorScheme.light(
@@ -382,7 +375,7 @@ class _AppointmentFormState extends ConsumerState<AppointmentForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Выберите питомца'),
-          backgroundColor: AppColors.error, // #FFE8E8
+          backgroundColor: AppColors.error,
         ),
       );
       return;

@@ -6,7 +6,7 @@ import 'package:peto/features/care_tracker/presentation/provider/care_tracker_pr
 import 'package:peto/features/home/presentation/providers/home_provider.dart';
 import 'package:peto/features/home/presentation/screens/home_screen.dart';
 import 'package:peto/features/calendar/presentation/screens/calendar_screen.dart';
-import 'package:peto/features/profile/presentation/screen/profile_screen.dart';
+import 'package:peto/features/profile/presentation/screens/profile_screen.dart';
 
 class CareTrackerScreen extends ConsumerStatefulWidget {
   const CareTrackerScreen({super.key});

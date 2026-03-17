@@ -1,37 +1,68 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AuthNotifier extends AsyncNotifier<void> {
-  @override
-  Future<void> build() async {}
+class AuthState {
+  final bool isAuthenticated;
+  final String? userId;
+  final String? email;
+  final String? displayName;
 
-  Future<void> signIn(String email, String password) async {
-    state = const AsyncLoading();
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      state = const AsyncData(null);
-    } catch (e) {
-      state = AsyncError(e, StackTrace.current);
-    }
-  }
+  AuthState({
+    this.isAuthenticated = false,
+    this.userId,
+    this.email,
+    this.displayName,
+  });
 
-  Future<void> signUp(String email, String password) async {
-    state = const AsyncLoading();
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      state = const AsyncData(null);
-    } catch (e) {
-      state = AsyncError(e, StackTrace.current);
-    }
+  AuthState copyWith({
+    bool? isAuthenticated,
+    String? userId,
+    String? email,
+    String? displayName,
+  }) {
+    return AuthState(
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      userId: userId ?? this.userId,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+    );
   }
 }
 
-final authProvider = AsyncNotifierProvider<AuthNotifier, void>(
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() {
+    return AuthState();
+  }
+
+  Future<void> signInWithEmail(String email, String password) async {
+    await Future.delayed(const Duration(seconds: 1));
+
+    state = AuthState(
+      isAuthenticated: true,
+      userId: 'user_${email.hashCode}',
+      email: email,
+      displayName: email.split('@').first,
+    );
+  }
+
+  Future<void> registerWithEmail(
+      String email, String password, String name) async {
+    await Future.delayed(const Duration(seconds: 1));
+
+    state = AuthState(
+      isAuthenticated: true,
+      userId: 'user_${email.hashCode}',
+      email: email,
+      displayName: name,
+    );
+  }
+
+  Future<void> signOut() async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    state = AuthState();
+  }
+}
+
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
   () => AuthNotifier(),
 );

@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:peto/core/routing/app_routes.dart'; // ✅ Импорт роутера
-import 'package:peto/core/theme/app_theme.dart';
+import 'package:peto/core/routing/app_routes.dart';
+import 'package:peto/core/theme/app_colors.dart';
 
 void main() {
-  runApp(const ProviderScope(child: PetPlanetApp()));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class PetPlanetApp extends ConsumerWidget {
-  const PetPlanetApp({super.key});
+class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(goRouterProvider);
+
     return MaterialApp.router(
-      // ✅ router вместо обычного MaterialApp
-      title: 'PetPlanet',
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      routerConfig: AppRoutes.router, // ✅ Подключение GoRouter
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryBright),
+        scaffoldBackgroundColor: AppColors.background,
+      ),
     );
   }
 }
